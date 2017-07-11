@@ -1,0 +1,212 @@
+<?php
+function connect(&$db){
+	$mycnf = "/etc/hw5-mysql.conf";
+	if(!file_exists($mycnf))
+	{
+		echo "ERROR: DB Config file not found: $mycnf";
+		exit;
+	}
+	
+
+	
+	$mysql_ini_array=parse_ini_file($mycnf);
+	$db_host= $mysql_ini_array["host"];
+	$db_user= $mysql_ini_array["user"];
+	$db_pass= $mysql_ini_array["pass"];
+	$db_port= $mysql_ini_array["port"];
+	$db_name= $mysql_ini_array["dbName"];
+	$db = mysqli_connect($db_host, $db_user, $db_pass, $db_name, $db_port);
+	if(!$db)
+	{
+		print "Error connecting to DB: " . mysqli_connect_error();
+		exit;
+	} 
+	}
+
+function icheck($num)
+{
+        if ($num!=null)
+                {
+                        if(!is_numeric($num)){
+                                exit;
+                                }
+                }
+
+}
+
+
+isset($_REQUEST['s'])? $s= strip_tags($_REQUEST['s']) :$s ="";
+//register user
+isset($_REQUEST['username'])? $username=strip_tags($_REQUEST['username']) :$username ="";
+isset($_REQUEST['password'])? $password=strip_tags($_REQUEST['password']) :$password ="";
+isset($_REQUEST['cardnumber'])? $cardnumber=strip_tags($_REQUEST['cardnumber']) :$cardnumber ="";
+
+//flight search
+isset($_REQUEST['scheduleid'])? $sicheduleid=strip_tags($_REQUEST['scheduleid']) :$scheduleid ="";
+isset($_REQUEST['flightname'])? $flightname=strip_tags($_REQUEST['flightname']) :$flightname ="";
+isset($_REQUEST['board'])? $board=strip_tags($_REQUEST['board']) :$board ="";
+isset($_REQUEST['boarddate'])? $boarddate=strip_tags($_REQUEST['boarddate']) :$boarddate ="";
+isset($_REQUEST['boardTime'])? $boardTime=strip_tags($_REQUEST['boardTime']) :$boardTime ="";
+isset($_REQUEST['destination'])? $destination =strip_tags($_REQUEST['destination']) :$destination ="";
+isset($_REQUEST['destinationTime'])? $destinationTime=strip_tags($_REQUEST['destinationTime']) :$destinationTime="";
+isset($_REQUEST['duration'])? $duration=strip_tags($_REQUEST['duration']) :$duration="";
+isset($_REQUEST['fare'])? $fare=strip_tags($_REQUEST['fare']) :$fare ="";
+
+//user login
+isset($_REQUEST['postUser'])? $postUser=strip_tags($_REQUEST['postUser']) :$postUser ="";
+isset($_REQUEST['postPass'])? $postPass=strip_tags($_REQUEST['postPass']) :$postPass ="";
+
+
+function logout ()
+{
+	session_destroy();
+          header("Location: /project/login.php");
+
+}
+
+
+                        
+function authenticate($db, $postUser, $postPass)
+{
+	echo "    Hi inside the auth function    ";
+	 $_SESSION['ip']=$_SERVER['REMOTE_ADDR'];
+	$_SESSION['HTTP_USER_AGENT']=md5($_SERVER['SERVER_ADDR'].$_SERVER['HTTP_USER_AGENT']);   
+	$_SESSION['created']=time();
+	$ip=$_SESSION['ip'];
+	
+	$WhiteList=array("188.18.6.26", "196.18.5.46", "196.18.5.16", "193.18.5.46");
+
+
+
+#	$queryCount = "select count(username) from login where  date > DATE_SUB(NOW(), INTERVAL 1 HOUR) and action = 'fail'";
+#	$resultCount= mysqli_query($db, $queryCount);
+#	while($row=mysqli_fetch_row($resultCount))
+#		{
+#			if($row[0]>=5 )
+#			{	
+#				session_destroy();        
+#				header("Location: /project/login.php");
+#			} 
+
+#		}
+
+
+	$query="select userid, username, password,  creditcard from users where username=?";
+
+	if ($stmt = mysqli_prepare($db, $query)) 
+	{
+		mysqli_stmt_bind_param($stmt, "s", $postUser);			    
+		mysqli_stmt_execute($stmt); 
+		mysqli_stmt_bind_result($stmt, $userid, $username, $password, $creditcard);
+		while(mysqli_stmt_fetch($stmt)) 
+		{
+			$userid=$userid;
+			$password=$password;
+			$salt=$salt;
+			$username=$username;
+			$creditcard = $creditcard;
+		}
+		mysqli_stmt_close($stmt);
+		$epass=hash('sha256', $postPass.$salt);
+		if ($password==$postPass)
+		#if ($epass == $password)
+ 		{ 
+		#	session_regenerate_id();	
+			$_SESSION['userid']=$userid;
+			$_SESSION['authenticated']="yes";
+	
+
+                	$act = "pass";
+                	if ($stmt = mysqli_prepare($db,  "INSERT INTO login set loginid='',  username=?, action=?, date=now() "))
+			{
+				mysqli_stmt_bind_param($stmt, "ss",  $postUser, $act);
+			 	mysqli_stmt_execute($stmt);
+			 	mysqli_stmt_close($stmt);
+
+			}
+		}	
+		else
+ 		{ 	
+			error_log("error: tolkien has failed login from". $_SERVER['REMOTE_ADDR'],0); 
+			
+			$actt = "fail";
+			if($postUser!=Null)
+			{
+                    		if ($stmt = mysqli_prepare($db, "INSERT INTO login set loginid='',  username=?, action=?, date=now() "))
+                        		{
+                        			mysqli_stmt_bind_param($stmt, "ss",  $postUser, $actt);
+                         			mysqli_stmt_execute($stmt);
+                         			mysqli_stmt_close($stmt);
+			
+                        		}
+				
+			}
+			session_destroy();
+                        header("Location: /project/login.php");
+	
+			echo "Failed to Login";
+		}
+	}
+	
+}
+
+function checkAuth($db)
+{
+        if(isset($_SESSION['HTTP_USER_AGENT']))
+      {
+                if($_SESSION['HTTP_USER_AGENT']!=md5($_SERVER['SERVER_ADDR'].$_SERVER['HTTP_USER_AGENT']))
+               {
+                       logout();
+                }
+                else
+                {
+                        logout();
+                }
+        }
+
+        if(isset($_SESSION['ip']))
+	    {
+                if($_SESSION['ip'] != $_SERVER['REMOTE_ADDR'])
+               {
+                       logout();
+               }
+                else
+                {
+                        logout();
+                }
+        }
+
+        if(isset($_SESSION['created']))
+        {
+                if( time() - $_SESSION['created']>1800)
+                {
+                        logout();
+                }
+                else
+                {
+                        logout();
+                }
+        }
+	
+	
+        if("POST" == $_SERVER["REQUEST_METHOD"])
+       {
+               if(isset($_SERVER["HTTP_ORIGIN"]))
+                {
+                        if($_SERVER["HTTP_ORIGIN"] != "https://100.66.1.7")
+                       {
+                               logout();
+                        }
+                        else
+                         {
+                                logout();
+                        }
+
+                }
+        }
+
+}
+
+
+?>
+
