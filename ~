@@ -1,0 +1,154 @@
+<?php
+
+include_once('/var/www/html/hw7/hw7-lib.php');
+include_once ('header.php'); 
+
+
+
+connect($db);
+
+function icheck($num)
+{
+        if ($num!=null)
+                {
+                        if(!is_numeric($num)){
+                                exit;
+                                }
+                }
+
+}
+
+isset($_REQUEST['s'])? $s= strip_tags($_REQUEST['s']) :$s ="";
+isset($_REQUEST['sid'])? $sid=strip_tags($_REQUEST['sid']) :$sid ="";
+isset($_REQUEST['bid'])? $bid=strip_tags($_REQUEST['bid']) :$bid ="";
+isset($_REQUEST['cid'])? $cid=strip_tags($_REQUEST['cid']) :$cid ="";
+isset($_REQUEST['characterName'])? $characterName=strip_tags($_REQUEST['characterName']) :$characterName ="";
+isset($_REQUEST['characterRace'])? $characterRace=strip_tags($_REQUEST['characterRace']) :$characterRace ="";
+isset($_REQUEST['characterSide'])? $characterSide=strip_tags($_REQUEST['characterSide']) :$characterSide ="";
+isset($_REQUEST['pictureUrl'])? $pictureUrl=strip_tags($_REQUEST['pictureUrl']) :$pictureUrl ="";
+
+
+
+
+icheck($s);
+icheck($sid);
+icheck($bid);
+icheck($cid);
+
+
+switch($s)
+    {
+	case 0;
+	default:
+		echo "<table> <tr> <td> <b> <u> stories </b> </u> </td> </tr>  \n";
+		$query = "SELECT storyid, story from stories";
+		$result= mysqli_query($db, $query);
+		while($row=mysqli_fetch_row($result))
+			{
+				$row[0] =htmlspecialchars($row[0]);
+				$row[1] =htmlspecialchars($row[1]);
+				echo "<tr> <td> <a href= index.php?sid=$row[0]&s=1> $row[1] </a> </td> <tr> \n";
+			}
+		echo "</table>";
+	break;
+
+
+	case 1;
+                echo "<table> <tr> <td> <b> <u> Books </b> </u> </td> </tr>  \n";
+        	$sid =mysqli_real_escape_string($db, $sid);
+		if ($stmt = mysqli_prepare($db, "SELECT bookid, title from books where storyid= ?"))
+		{
+			mysqli_stmt_bind_param($stmt, "s", $sid);
+			mysqli_stmt_execute($stmt);
+			mysqli_stmt_bind_result($stmt, $bid, $title);
+			while (mysqli_stmt_fetch($stmt))
+			{
+				$bid =htmlspecialchars($bid);
+                                $title =htmlspecialchars($title);
+				 echo "<tr> <td> <a href= index.php?bid=$bid&s=2> $title </a> </td> </tr> \n";
+			}
+			mysqli_stmt_close($stmt);
+		}        
+                echo "</table>";
+        break;
+
+
+	case 2;
+                echo "<table> <tr> <td> <b> <u> Characters </b> </u> </td> </tr>  \n";
+                
+		$bid =mysqli_real_escape_string($db, $bid);
+                if ($stmt = mysqli_prepare($db, "SELECT characters.characterid, characters.name from books, characters, appears where appears.bookid=books.bookid and appears.characterid=characters.characterid and books.bookid=?"))
+                {
+                        mysqli_stmt_bind_param($stmt, "s", $bid);
+                        mysqli_stmt_execute($stmt);
+                        mysqli_stmt_bind_result($stmt, $cid, $name);
+                        while (mysqli_stmt_fetch($stmt))
+                        {
+                                $bid =htmlspecialchars($bid);
+                                $title =htmlspecialchars($name);
+                                 echo "<tr> <td> <a href= index.php?cid=$cid&s=3> $name </a> </td> </tr> \n";
+                        }
+                        mysqli_stmt_close($stmt);
+                }
+                echo "</table>";
+
+
+
+		break;
+
+
+
+	case 3;
+                echo "<table> <tr> <td> <b> <u> Appearences </b> </u> </td> </tr>  \n";
+		echo "<tr> <td> <b> Characters </b> </td>   <td> <b> Books </b> </td>  <td> <b> Stories </b> </td> </tr> \n";
+               
+		$cid =mysqli_real_escape_string($db, $cid);
+                if ($stmt = mysqli_prepare($db, "select characters.characterid, characters.name, books.bookid, books.title, stories.storyid, stories.story from books, characters, appears, stories where appears.bookid=books.bookid and books.storyid=stories.storyid and appears.characterid=characters.characterid and characters.characterid=?"))
+                {
+                        mysqli_stmt_bind_param($stmt, "s", $cid);
+                        mysqli_stmt_execute($stmt);
+                        mysqli_stmt_bind_result($stmt, $cid, $name, $bid, $title, $sid, $story);
+                       
+		while (mysqli_stmt_fetch($stmt))
+
+
+
+                        {
+                                $cid =htmlspecialchars($cid);
+                                $name =htmlspecialchars($name);
+				$bid =htmlspecialchars($bid);
+				$title =htmlspecialchars($title);
+				$sid =htmlspecialchars($sid);
+				$story =htmlspecialchars($story);
+
+                                 echo "<tr> <td> <a href= index.php?cid=$cid&s=0> $name </a> </td>
+					<td> <a href=index.php?bid=$bid&s=0>$title </a> </td>
+					<td> <a href=index.php?sid=$sid&s=0>$story </a> </td> </tr> \n";
+                        }
+                        mysqli_stmt_close($stmt);
+                }
+                echo "</table>";
+		break;
+
+
+	case 50;
+                echo "<table> <tr> <td> <b> <u> Character List </b> </u> </td> </tr>  \n";
+                $query = "SELECT characters.characterid, characters.name , pictures.pictureid, pictures.url from  characters, pictures  where pictures.characterid =characters.characterid";
+                $result= mysqli_query($db, $query);
+                while($row=mysqli_fetch_row($result))
+                        {
+                                $row[0] =htmlspecialchars($row[0]);
+                                $row[1] =htmlspecialchars($row[1]);
+                                $row[2] =htmlspecialchars($row[2]);
+                                $row[3] =htmlspecialchars($row[3]);
+
+				echo "<tr> <td> <a href= index.php?cid=$row[0]&s=3> $row[1] </a> </td> <td> <a href=index.php?pid=$row[2]&s=3> </a> </td> <td> <img src=$row[3]> </td>  </tr>";
+                        }
+                echo "</table>";
+               
+        break;
+
+ } 
+
+
+?>
